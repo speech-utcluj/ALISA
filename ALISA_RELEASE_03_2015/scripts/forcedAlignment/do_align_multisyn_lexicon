@@ -1,0 +1,315 @@
+#!/bin/bash
+
+
+## osw --- Fri 30 Apr 2010 15:58:27 BST 
+## use multisyn procedure but use normal word level lexicon, 
+## do all word-->pron translations in script
+
+## add make mmfc
+
+## assume   $root/wav containing wavs
+##	    $root/utts.data
+##	    $root/lex	    
+
+
+##
+##bin=/group/project/nlp-speech/bin  ## htk bin
+
+# currently assumes: $phoneList, substitutions,  train.scp
+root=$1
+supervised=$2
+phoneList=$3
+dict=$4
+slf=0
+
+
+
+############################### step 1: setup ######################################
+
+if [ ! -d "$root" ] ; then
+    echo "Usage: $0 [-s] root_directory  [init_hmm]"
+    echo
+    echo  "If init_hmm is given and contains MMF and vFloors,"
+    echo  "these master model file and variance floors will"
+    echo  "be used as initial ones, i.e. copied into hmm0."
+    echo
+    echo " -s   use slf lattices for alignment rather than a phone sequence"
+    exit 1
+fi
+
+##
+## GENERAL SETUP
+##
+
+echo "CHANGING DIRECTORY"
+cd $root
+
+echo "CHECKING FOR FILES"
+
+
+
+
+if [ ! -r $phoneList ] ; then
+    echo "$phoneList not found"
+    exit 1
+fi
+
+
+### OSW comm'd out ======================
+#if [ ! -r "phone_substitutions" ] ; then
+#    echo "phone_substitutions not found"
+#    exit 1
+#fi
+#####====================================
+
+if [ ! -r "train.scp" ] ; then
+    echo "train.scp not found"
+    exit 1
+fi
+if [ ! -r "words.mlf" ] ; then
+    echo "words.mlf not found"    
+    exit 1
+fi
+
+if [ ! -d "resources" ] ; then
+    echo "resources not found"
+    exit 1
+fi
+if [ ! -d "proto" ] ; then
+    echo "proto not found"
+    exit 1
+fi
+
+
+#### make proto skip model -- osw:
+
+
+cat > ./proto/3stateskip<<EOF
+~o <VecSize> 39 <MFCC_E_D_A> <DIAGC> <NULLD>
+<BeginHMM>
+<NumStates> 3 <StreamInfo> 1 39 <VecSize> 39
+<State> 2
+<Mean> 39
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+<Variance> 39
+1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+<TransP> 3
+0.0 0.0 1.0
+0.0 0.5 0.5
+0.0 0.0 0.0
+<EndHMM>
+EOF
+
+
+### create "no sp" initial labels
+##grep -v "sp" aligned.0.mlf > aligned.0.nosp.mlf   
+
+# Generate Master Model file
+echo "CREATING MASTER MODEL FILE"
+mkdir -p hmm0
+
+#if [ $2 ] ; then
+#    echo " COPYING VARIENCE FLOOR"
+#    if [ ! -r $2/vFloors ] ; then
+#        echo "Copying $2/vFloors failed, Aborted!" ; exit 1
+#    fi
+#    cp $2/vFloors hmm0
+
+#    echo " COPYING MODELS"
+#    if [ ! -r $2/MMF ] ; then
+#        echo "Copying $2/MMF failed, Aborted!" ; exit 1
+#    fi
+#    cp $2/MMF hmm0
+#else
+
+    echo " SETTING VARIENCE FLOOR"
+    $HTK_BIN/HCompV -C config -f 0.01 -m -S train.scp -M hmm0 proto/5states
+    if [ $? -gt 0 ] ; then echo "Set varience floor failed, Aborted!" ; exit 1 ; fi
+    
+    # create models
+    echo " GENERATING MODELS"
+    for m in `cat $phoneList` ; do
+        echo $m
+        if [ "$m" != "skip" ] ; then          # osw - sp  ->  skip
+    	    grep -v "~h" hmm0/5states > hmm0/$m
+        else 
+    	    cp proto/3stateskip hmm0/$m            # null topol for skip
+        fi
+    done
+    echo "models made OK"
+  
+    $HTK_BIN/HHEd -d hmm0 -w hmm0/MMF resources/tie_silence.hed $phoneList
+    if [ $? -gt 0 ] ; then echo "Build master model file failed, Aborted!" ; exit 1 ; fi
+ 
+
+#################### words.mlf --> aligned.0.mlf
+
+#rm edfile.hed
+echo "EX" > edfile.hed
+
+
+################### make intial labels:
+#cat extra.lex main.lex > all.lex
+
+if [ $supervised -eq 0 ] ; then
+    cat  main.lex > all.lex
+    dictionary=all.lex
+else
+    dictionary=$dict   
+fi 
+    
+$HTK_BIN/HLEd -I words.mlf -i aligned.0.mlf -l '*' -d $dictionary edfile.hed words.mlf
+
+
+############################################ STEP 2: initial training #############################
+###
+### INITIAL TRAINING
+###
+
+i=0
+
+# Re-estimation
+for j in 1 2 3; do
+echo "RE-ESTIMATING MODEL PARAMETERS (ITERATION $i)"
+    mkdir -p hmm$[$i +1]                                                        # osw rem'd nosp
+    $HTK_BIN/HERest -C config -T 1023 -t 250.0 150.0 1000.0 -H hmm${i}/MMF -H hmm0/vFloors -I aligned.0.mlf -M hmm$[$i +1] -S train.scp $phoneList
+    if [ $? -gt 0 ] ; then echo "Re-estimation $i failed, Aborted!" ; exit 1 ; fi
+    i=$[$i + 1]
+done
+
+
+# # untie breath and silence:
+# echo "Untying breath and silence models..."
+# HHEd -H hmm${i}/MMF -w hmm${i}/MMF resources/untie_breath.hed $phoneList
+# ###########################################
+
+# ## i=3 # osw
+
+P1=1000       # initial beamsearch thresh for HVite
+P2=100000     # if aligning fails, increase by that amout
+P3=1000000    # up to this number  OSW added 6 0s
+
+# Realignment to correct labelling:
+echo "FIRST ALIGNMENT AND VOWEL REDUCTION - osw - silence insertion "    # osw rem'd nosp   # words.mlf added
+$HTK_BIN/HVite -l \* -C config  -a -m -I words.mlf -H hmm${i}/MMF -i aligned.1.mlf -m \
+      -t $P1 $P2 $P3  -S train.scp -y lab $dictionary $phoneList
+if [ $? -gt 0 ] ; then echo "First alignment failed, Aborted!" ; exit 1 ; fi
+
+
+#=======================================
+
+### 4,5,6
+# Reestimate a few more times
+for j in 1 2 3; do
+echo "RE-ESTIMATING MODEL PARAMETERS (ITERATION $i)"
+    mkdir -p hmm$[$i +1]
+    $HTK_BIN/HERest -C config -T 1 -t 250.0 150.0 1000.0 -H hmm${i}/MMF -H hmm0/vFloors -I aligned.1.mlf -M hmm$[$i +1] -S train.scp $phoneList
+    if [ $? -gt 0 ] ; then echo "Re-estimation $i  failed, Aborted!" ; exit 1 ; fi
+    i=$[$i + 1]
+done
+
+# # Now add sp model
+
+# # Realign      - use original labels now with sp and redo label correction or use slf if available
+# echo "REALIGNMENT"
+
+# OSW - words.mlf added
+
+if [ $slf = 0 ] ; then
+    $HTK_BIN/HVite -l \* -C config -a  -m -i aligned.2.mlf -I words.mlf -T 1  -H hmm${i}/MMF  -S train.scp -y lab $dictionary $phoneList 
+    if [ $? -gt 0 ] ; then echo "second alignment failed, Aborted!" ; exit 1 ; fi
+else
+    $HTK_BIN/HVite -w -l \* -i aligned.2.mlf.tmp -C config -m -L ../slf -X slf -T 1 -H hmm${i}/MMF -H proto/3statesnull -y lab -S train.scp  dict_slf $phoneList_slf
+    if [ $? -gt 0 ] ; then echo "second alignment (slf) failed, Aborted!" ; exit 1 ; fi
+    egrep -v ' (\.|#1|#2) ' aligned.2.mlf.tmp > aligned.2.mlf
+    rm aligned.2.mlf.tmp
+fi
+
+
+### 7,8,9
+# Reestimate a few more times
+for j in 1 2 3; do
+echo "RE-ESTIMATING MODEL PARAMETERS (ITERATION $i)"
+    mkdir -p hmm$[$i +1]
+
+    if [ $slf = 0 ] ; then
+      $HTK_BIN/HERest -C config -T 1 -t 250.0 150.0 1000.0 -H hmm${i}/MMF -H hmm0/vFloors -I aligned.2.mlf -M hmm$[$i +1] -S train.scp $phoneList
+      if [ $? -gt 0 ] ; then echo "Re-estimation $i  failed, Aborted!" ; exit 1 ; fi
+    else
+      $HTK_BIN/HERest -C config -T 1 -t 250.0 150.0 1000.0 -H hmm${i}/MMF -H hmm0/vFloors -H proto/3statesnull -I aligned.2.mlf -M hmm$[$i +1] -S train.scp $phoneList_slf
+      if [ $? -gt 0 ] ; then echo "Re-estimation $i  failed, Aborted!" ; exit 1 ; fi
+    fi
+    i=$[$i + 1]
+done
+
+# Realign      - use original labels   - osw words.,mlf
+echo "REALIGNMENT"
+if [ $slf = 0 ] ; then
+    $HTK_BIN/HVite -l \* -C config -a  -m -i aligned.3.mlf -I words.mlf -T 1  -H hmm${i}/MMF  -S train.scp -y lab $dictionary $phoneList 
+    if [ $? -gt 0 ] ; then echo "third alignment failed, Aborted!" ; exit 1 ; fi
+else
+    $HTK_BIN/HVite -w -l \* -i aligned.3.mlf.tmp -C config -m -L ../slf -X slf -T 1 -H hmm${i}/MMF -H proto/3statesnull -y lab -S train.scp  dict_slf $phoneList_slf
+    if [ $? -gt 0 ] ; then echo "third alignment (slf) failed, Aborted!" ; exit 1 ; fi
+    egrep -v ' (\.|#1|#2) ' aligned.3.mlf.tmp > aligned.3.mlf
+    rm aligned.3.mlf.tmp
+fi
+
+
+###
+### INCREASE MISTURES
+###
+
+# Increase mixtures.
+
+### 10 - 11,12,13   14 -- 15 16 17    18 -- 19 20 21
+for m in 2 3 5 8 ; do
+    echo "INCREASING MIXTURES TO $m"  
+    mkdir -p hmm$[$i +1]
+    if [ $slf = 0 ] ; then
+      $HTK_BIN/HHEd -C config -H hmm${i}/MMF -M hmm$[$i + 1] resources/mixup${m}.hed $phoneList
+      if [ $? -gt 0 ] ; then echo "Mixup to $m mixtures failed, Aborted!" ; exit 1 ; fi
+    else
+      $HTK_BIN/HHEd -C config -H hmm${i}/MMF -M hmm$[$i + 1] resources/mixup${m}.hed $phoneList
+      if [ $? -gt 0 ] ; then echo "Mixup to $m mixtures failed, Aborted!" ; exit 1 ; fi
+    fi
+
+    i=$[$i + 1]
+    for j in 1 2 3; do
+        echo "RE-ESTIMATING MODEL PARAMETERS (ITERATION $i)"
+	mkdir -p hmm$[$i +1]
+	if [ $slf = 0 ] ; then
+	  $HTK_BIN/HERest -C config -T 1 -t 250.0 150.0 1000.0 -s hmm$[$i + 1]/stats -H hmm${i}/MMF -H hmm0/vFloors -I aligned.3.mlf -M hmm$[$i + 1] -S train.scp $phoneList
+	  if [ $? -gt 0 ] ; then echo "Re-estimation $i failed, Aborted!" ; exit 1 ; fi
+	else
+	  $HTK_BIN/HERest -C config -T 1 -t 250.0 150.0 1000.0 -s hmm$[$i + 1]/stats -H hmm${i}/MMF -H hmm0/vFloors -H proto/3statesnull -I aligned.3.mlf -M hmm$[$i + 1] -S train.scp $phoneList_slf
+	  if [ $? -gt 0 ] ; then echo "Re-estimation $i failed, Aborted!" ; exit 1 ; fi
+	fi
+	i=$[$i + 1]
+    done
+
+done
+
+# Final alignment   ------- osw - added words.mlf ; omit alignment scores with -o flag
+
+echo "FINAL ALIGNMENT"
+if [ $slf = 0 ] ; then
+    $HTK_BIN/HVite -l \* -C config -a -m -i aligned.4.mlf -I words.mlf -T 1 -o S -H hmm${i}/MMF $dictionary  $phoneList -S train.scp
+    if [ $? -gt 0 ] ; then echo "Final alignment failed, Aborted!" ; exit 1 ; fi
+else
+    $HTK_BIN/HVite -w -l \* -i aligned.4.mlf -C config -m -L ../slf -X slf -T 1 -o S -H hmm${i}/MMF -H proto/3statesnull -S train.scp  dict_slf $phoneList_slf
+    if [ $? -gt 0 ] ; then echo "Final alignment (slf) failed, Aborted!" ; exit 1 ; fi
+fi
+
+
+
+# osw --- also make forms of the labels with words only:
+rm edfile.hed
+echo "DL 1" > edfile.hed
+
+$HTK_BIN/HLEd -I aligned.4.mlf -i aligned.4_WORDS.mlf -l '*'  edfile.hed  aligned.4.mlf
+
+
+
+

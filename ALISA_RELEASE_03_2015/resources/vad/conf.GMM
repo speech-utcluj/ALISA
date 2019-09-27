@@ -1,0 +1,35 @@
+#MFCC
+a def # preemphasise coefficient [default: 0.97]
+c def # liftering coefficient [default: 22]
+e def # florring value for filterbank analysis [default: 1.0]
+l 800 # frame length of input [default: 256] please set even number
+L def # frame length of fft [default: 2^n=l]
+m def # order of mfcc [default: 12]
+n def # order of channel for mel-filter bank [default: 20]
+w def # type of window [default: 0(Hamming)] [1:Do not use window function]
+d def # use dft if this is set 1 [default: fft]
+E 1 # output energy if this is set 1 [default: Do not output]
+0 def # output 0th static coefficient if this is set 1 [default: Do not output]
+#DELTA
+r 3 # window size for delta (if it is set 0, delta is not used)
+#ZEROCROSS
+u def # Do not use zero cross for feature vector if this is set 1 [default: use]
+#GMM
+m def # the number of Gaussian components [default: 16]
+t def # the number of training vectors [default: N/A]
+s def # seed of random variable for LBG algorithm [default: 1]
+a def # minimum number of EM iterations [default: 0]
+b def # maximum number of EM iterations [default: 20]
+e def # end condition for EM iteration [default: 0.001]
+v def # flooring value for variances [default: 0.001]
+w def # flooring value for weights [default: 0.001]
+#THRESHOLD
+f 0 # flag whether use threshold shift or not, if 0 not use, if 1 use
+m 1 # the number of frame to move threshold of sp and sil
+c 7500 # total length(sec) of wavs over 15 sec to finalise controlling threshold
+#LENGTH
+f 0 # flag whether use length limitation or not, if 0 not use, if 1 use
+s 5 # minimum length of result wav files (sec)
+c 1 # how to concatenate shorter wav files, if 0 with former, if 1 with following
+#LABEL
+f 1 # flag whether to ouput the segmentation labels

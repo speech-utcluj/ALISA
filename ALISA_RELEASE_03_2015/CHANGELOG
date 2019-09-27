@@ -1,0 +1,51 @@
+CHANGELOG
+
+Align TK - ALISA
+
+
+****************************
+vs 1.2.0 - August 2012
+****************************
+     	- Text processing now lets you use the first N utterances in the text as initial text data, and computes the number of occurences of each grapheme, letting you know if there are any that have no occurences. 
+     	- Changed the order in which the initial text data is written to file -- the order in the book is kept in the initial text data file
+     	
+****************************
+vs 1.3.0 - January 2013
+****************************
+        - Added Yoshitaka's VAD scripts as a preliminary step in AlignTK. There are 3 VAD algorithms: 1) Using adintool from Julius; 2) A GMM-based VAD using silence and speech models; 3) An algorithm based on zero crossing rate and energy
+        - The initial training data are now the first ~10 minutes of the audiobook. The user is first asked to mark the silence in them and then to transcribe them.
+        - Took out step 5 of text processing as it is no longer needed - the initial training data are now the first ~10 min of speech
+        - Changed the acoustic model building so that they create generic models for all graphemes, not just the ones in the initial training data. 
+
+****************************
+vs. 1.3.1 - January 22, 2013
+****************************
+        - Added 3 functions to textProcessingModule.py : a) fc. to convert the raw transcription of the initial text data to the format required by Oliver's alignment scripts (prepareInitialTextData); b) fc. to simply strip punctuation and convert to lower case an input file (punctuationAndLowercase); c) fc. to do a sentence split using NLTK's tokeniser (sentenceSplitNLTK) -- will be used later on.
+        - Added a script (scripts/convertWavesurferLabels.py) which converts a Wavesurfer label for silence into the format required by VAD
+        - VAD.py can now use a name for the initial annotated speech file, so that it does not have to be the first in an alphabetical order. 
+
+****************************
+vs. 1.3.2 - January 24, 2013
+****************************
+        - Added a script that concatenates the utterances if they make up an entire sentence (scripts/concatenateUtterances.py)
+        - Added a script that computes the total time of the aligned files and prints it at the end of runAlign.sh
+
+
+****************************
+vs. 1.3.3 - February 1, 2013
+****************************
+        - Changed the scripts, so that they are independent of where the input and output data is relative to the working directory.
+        - Added a single CONFIG file for all the stepts: VAD, TP and ALIGN (see config.template).
+        - Changed the confidence measure slightly, and it now results in more aligned files.
+        - Added a script which concatenates files shorter than a specified minimum length -- the aligner works better for files longer than at least 3 seconds.
+
+
+***************************
+vs. 1.5 - October 15, 2014
+***************************
+	- Fixed a number of bugs
+	- Added verification steps for all external tools and files.
+	- Added the option to use a lexicon when such a resource exists.
+	- Added the option to run the alignment steps individually.
+	- Tied-trigrapheme models are now automatically generated with simple left right context and no phonetic knowledge.
+	- Some new options in the configuration file (see config.template)

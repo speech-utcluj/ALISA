@@ -1,0 +1,5 @@
+#adintool
+l 2500 # threshold of level (0 - 32767) [def: 2000]
+z 73 # threshold of zero cross per 1 second [def: 60]
+h 200 # previous margin of speech period (msec) [def: 400]
+t 200 # following margin of speech period (msec) [def: 400]

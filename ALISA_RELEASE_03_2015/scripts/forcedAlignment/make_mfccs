@@ -1,0 +1,72 @@
+#!/usr/bin/env python
+
+## Generate mfccs for forced alignment and nist wav files if required.
+
+import getopt
+import os
+import sys
+##import lsdir
+import re
+
+#Usage
+def usage():
+      print "make_mfccs [-h] <alignment_dir> <wav> <utts.data file>"
+      print "\t -h prints this help"
+      print "\t alignment_dir"
+      print "\t wav_dir"
+      print "\t utts.data file"
+
+try:
+    args = getopt.getopt(sys.argv[1:], 'h:',[])
+        
+except getopt.GetoptError:
+    usage()
+    sys.exit(1)
+
+if (len(args[1]) < 3):
+    usage()
+    sys.exit(1)
+#-----
+
+#Main program
+try:
+    estbase = os.environ["ESTDIR"]
+except KeyError:
+    print "\n** environment variable ESTDIR is unset **\n"
+
+os.system("mkdir -p wav_nist mfcc")
+
+rootdir = sys.argv[1]
+wavdir = sys.argv[2] + '/'
+utts_file = sys.argv[3]
+
+#Generates a list of files
+#filelist = lsdir.listFiles( wavdir, utts_file )
+
+
+def list_directory(directory, extension):
+        pat = re.compile(".*\."+extension + "\Z")
+        dir_list = [os.path.join(directory, name) for name in os.listdir(directory) if re.match(pat, name)] 
+        dir_list = [i[:-4] for i in dir_list]
+	dir_list.sort()
+        return dir_list  ### see sorted above
+
+
+
+## osw
+filelist = list_directory(wavdir, "wav")
+
+
+
+for file in filelist:
+    file_path = os.path.split(file)
+    fileroot = file_path[1]  #voice_filenumber
+    nistwav = 'wav_nist/' + fileroot + '.wav2'
+    wav = file + '.wav'
+    mfcc = 'mfcc/' + fileroot + '.mfcc'
+
+    os.system("%s/ch_wave -otype nist -o %s %s " % (estbase,nistwav,wav))
+    os.system("HCopy -T 1 -C %s/resources/CONFIG_for_coding %s %s" % (rootdir,nistwav,mfcc))
+    os.system("rm -f %s" % (nistwav))
+   
+os.system("rmdir wav_nist")

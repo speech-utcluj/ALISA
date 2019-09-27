@@ -1,0 +1,69 @@
+#!/usr/bin/env perl
+
+# Splits a mlf into seperate label files. These are dumped into the
+# specified directory
+
+
+# HTK makes some weird assumptions.  It assumes that the first mfcc
+# frame starts at zero and ends at the frame shift (i.e. that frames
+# are not overlapped). This leads to the assumption that the first
+# frame in an mfcc file centres on a time point equal to the middle of a
+# window the size of the frame shift, rather than a window of
+# the actual window length. As label times are between frames, 
+# A correction of (window_length - frame_shift)/2 is required to fix this.
+
+$htk_lab_error = 0.004;
+
+if($#ARGV == 1)
+{
+  $mlf = $ARGV[0];
+  $odir = $ARGV[1];
+
+  open(INFILE, "$mlf") || 
+    die "cannot open $mlf for input";
+
+  while(<INFILE>)
+    {
+
+      if ($_ =~ /^\./ ){}
+      elsif ($_ =~ /^\"/)
+	{
+	  @line  = split /\./, $_;
+	    @utter= split /\//, $line[0];
+	  $outfile = "$odir/$utter[$#utter].lab";
+	  print "$outfile\n";
+	  $flag=0;
+	  open(OUTFILE, ">$outfile") ||
+	    die "cannot open $outfile for output";
+
+	}
+      else
+	{
+	  if($flag==0)
+	    {
+	      print  OUTFILE "seperator \;\nnfields 1\n\#\n";
+	      $flag=1;
+	    }
+
+	  @labels = split /\s+/, $_;
+
+	  print OUTFILE "\t";
+	  print OUTFILE $htk_lab_error+$labels[1]/10000000;
+	  print OUTFILE "\t26\t";
+	  print OUTFILE $labels[2];
+	  print OUTFILE " ; ";
+	  print OUTFILE "score $labels[3] ;\n";
+
+	}
+    }
+}
+
+else
+  {
+    print "splits a mlf into seperate label files.\n\n";
+    print "usage: break_mlf <mlf> <output directory>\n\n";
+  }
+
+
+
+

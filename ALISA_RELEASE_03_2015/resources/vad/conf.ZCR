@@ -1,0 +1,5 @@
+#ZEROCROSS
+f 20 # frame length (msec)
+t 28 # threshold of the number of frame (frame)
+l 20 # threshold of level per 1 frame
+z 30 # threshold of zero cross per 1 frame

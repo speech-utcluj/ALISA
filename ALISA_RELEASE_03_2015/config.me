@@ -1,0 +1,85 @@
+#!/bin/sh
+
+#################################################
+## Author: Adriana STAN adriana.stan@com.utcluj.ro
+## Project Simple4All - www.simple4all.org
+## October 2014
+#################################################
+
+
+## This is the configuration file for ALISA. 
+## Change the following variables for your setup.
+
+#################################################
+# GENERAL CONFIGS
+##################################################
+
+INPUTFOLDER=/media/9d37ff4d-46f4-400e-adc3-2bed31821582/ALISA/vad_test/wav/   ## Path to the folder where the raw data is
+OUTPUT=/media/9d37ff4d-46f4-400e-adc3-2bed31821582/ALISA/vad_test/OUT/            ## Path for the OUTPUT folder
+
+#################################################
+## VAD CONFIGS
+##################################################
+      
+INWAV=/media/9d37ff4d-46f4-400e-adc3-2bed31821582/ALISA/ALISA_RELEASE_03_2015_testData/aTrampAbroad-50UttsSil.wav	## Name of the audio file for which you annotated the 
+                                                        ## silence segments. Only for GMM-VAD, METHOD 1.
+LABELFILE=/media/9d37ff4d-46f4-400e-adc3-2bed31821582/ALISA/ALISA_RELEASE_03_2015_testData/aTrampAbroad-50UttsSil.lab	## Path to the label file for the above audio
+SPTKDIR=//usr/lib/sptk/bin/		                            ## Path to the Speech Signal Processing Toolkit (SPTK)
+
+MINLEN=0                                                ## Minimum length of files after concatenation (in seconds)                       
+
+
+##################################################
+## TEXT PROCESSING CONFIGS
+##################################################
+
+BOOK=/work/alisa/testData/aTrampAbroad.txt   ## Path to the text file for the audiobook
+
+INITIALTEXT=/work/alisa/testData/aTrampAbroad-initialTextData 
+                                                            ## Path to the raw transcription of the 
+                                                            # initialWav16 folder
+                                                            # It will be stripped of punctuation and
+                                                            # changed to all lowercase
+
+SUPERVISED=0                                                ## Do you have a lexicon for the language you are aligning?
+SUPERVISEDDICT=/work/alisa/testData/aTrampAbroad-supervised.dict  ## Path to the supervised lexicon
+LISTOFPHONES=/work/alisa/testData/aTrampAbroad-phones-supervised  ## Path to the list of phones used in the supervised lexicon
+
+FROMTPSTEP=1
+TOTPSTEP=5                                                
+# STEP 1 - Segmentation
+# STEP 2 - Create grapheme list
+# STEP 3 - Replace non-standard characters & Bigram list
+# STEP 4 - HTK Dictionary
+# STEP 5 - Prepare initial text data
+
+##################################################
+## ALIGN CONFIGS
+##################################################
+
+FROMSTEP=0                  ## Variable to select which steps to run from the alignment
+TOSTEP=4                    ## STEP 0 - Initialise workspace
+                            ## STEP 1 - Initial models trained on 10 minutes of speech
+                            ## STEP 2 - First iteration of mono-grapheme models
+                            ## STEP 3 - MMI trained mono-grapheme models
+                            ## STEP 4 - Tri-grapheme re-estimation
+
+NAIVE=/work/alisa/          				    ## Absolute path to this directory
+HLMTOOLSDIR=/work/htk/HLMTools/                 ## Absolute path to the HLMTools
+HTK_BIN=/work/htk/HTKTools/
+ESTDIR=/work/est/bin/  			                ## Edinburgh Speech Tools path
+
+NWIN=1600                     				    ## Text window for approximate text
+MARKER=chp                  				    ## Common prefix for all wav files
+USEMMI=1                                        ## create and use MMI trained models
+
+
+
+##################################################
+## POST-PROCESSING CONFIGS
+##################################################
+SENTB=1						## Use sentence boundary correction variable
+ELISION=1                   ## Sign used for elision in the language of the audiobook; 0 - ''', 1 - '-'
+FINALCONCAT=0               ## Apply concatenation of speech files which make up a sentence after the alignment?
+CLEAN=0                     ## Should the temporary files be removed, or do you want to re-run some steps?
+

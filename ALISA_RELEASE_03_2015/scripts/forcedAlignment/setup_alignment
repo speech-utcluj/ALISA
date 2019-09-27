@@ -1,0 +1,191 @@
+#!/bin/bash
+
+if [ -z "$1" ] ; then
+    root=alignment
+fi
+
+if [ ! -d $root ] ; then
+ mkdir $root
+fi
+
+# create resource files
+echo "CREATING RESOURCE FILES"
+mkdir -p $root/resources
+mkdir -p $root/proto
+
+
+echo "MU 2 {*.state[2-4].mix}" > $root/resources/mixup2.hed
+echo "MU 3 {*.state[2-4].mix}" > $root/resources/mixup3.hed
+echo "MU 5 {*.state[2-4].mix}" > $root/resources/mixup5.hed
+echo "MU 8 {*.state[2-4].mix}" > $root/resources/mixup8.hed
+
+cat > $root/resources/tie_silence.hed<<EOF
+ AT 2 4 0.2 {sil.transP}
+ AT 4 2 0.2 {sil.transP}
+ AT 1 3 0.3 {skip.transP}
+ TI silst {sil.state[3],skip.state[2]}
+EOF
+
+cat > $root/resources/htkcepfields<<EOF
+field=c1
+type=float
+spec_param[0]
+field=c2
+type=float
+spec_param[1]
+field=c3
+type=float
+spec_param[2]
+field=c4
+type=float
+spec_param[3]
+field=c5
+type=float
+spec_param[4]
+field=c6
+type=float
+spec_param[5]
+field=c7
+type=float
+spec_param[6]
+field=c8
+type=float
+spec_param[7]
+field=c9
+type=float
+spec_param[8]
+field=c10
+type=float
+spec_param[9]
+field=c11
+type=float
+spec_param[10]
+field=c12
+type=float
+spec_param[11]
+EOF
+
+
+cat > $root/config<<EOF
+TARGETKIND = MFCC_E_D_A
+EOF
+
+cat > $root/resources/CONFIG_for_coding<<EOF
+    SOURCEKIND=WAVEFORM
+    SOURCEFORMAT=NIST
+    ENORMALISE=F
+    TARGETKIND=MFCC_E
+    TARGETRATE=100000.0
+    SAVECOMPRESSED=T
+    SAVEWITHCRC=T
+    WINDOWSIZE=100000.0
+    USEHAMMING=T
+    PREEMCOEF=0.97
+    NUMCHANS=26
+    CEPLIFTER=22
+    NUMCEPS=12
+EOF
+
+cat > $root/proto/5states<<EOF
+~o <VecSize> 39 <MFCC_E_D_A> <DIAGC> <NULLD>
+<BeginHMM>
+<NumStates> 5 <StreamInfo> 1 39 <VecSize> 39
+<State> 2
+<Mean> 39
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+<Variance> 39
+1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+<State> 3
+<Mean> 39
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+<Variance> 39
+1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+<State> 4
+<Mean> 39
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+<Variance> 39
+1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+<TransP> 5
+0.0 1.0 0.0 0.0 0.0
+0.0 0.5 0.5 0.0 0.0
+0.0 0.0 0.5 0.5 0.0
+0.0 0.0 0.0 0.5 0.5
+0.0 0.0 0.0 0.0 0.0
+<EndHMM>
+EOF
+
+cat > $root/proto/3states<<EOF
+~o <VecSize> 39 <MFCC_E_D_A> <DIAGC> <NULLD>
+<BeginHMM>
+<NumStates> 3 <StreamInfo> 1 39 <VecSize> 39
+<State> 2
+<Mean> 39
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+<Variance> 39
+1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+<TransP> 3
+0.0 1.0 0.0
+0.0 0.5 0.5
+0.0 0.0 0.0
+<EndHMM>
+EOF
+
+cat > $root/proto/3statesnull<<EOF
+~o <VecSize> 39 <MFCC_E_D_A> <DIAGC> <NULLD>
+~h "#1"
+<BeginHMM>
+<NumStates> 3 <StreamInfo> 1 39 <VecSize> 39
+<State> 2
+<Mean> 39
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+<Variance> 39
+1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+<TransP> 3
+0.0 0.0 1.0
+0.0 0.5 0.5
+0.0 0.0 0.0
+<EndHMM>
+~h "#2"
+<BeginHMM>
+<NumStates> 3 <StreamInfo> 1 39 <VecSize> 39
+<State> 2
+<Mean> 39
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+<Variance> 39
+1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+<TransP> 3
+0.0 0.0 1.0
+0.0 0.5 0.5
+0.0 0.0 0.0
+<EndHMM>
+~h "."
+<BeginHMM>
+<NumStates> 3 <StreamInfo> 1 39 <VecSize> 39
+<State> 2
+<Mean> 39
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+<Variance> 39
+1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0 1.0
+<TransP> 3
+0.0 0.0 1.0
+0.0 0.5 0.5
+0.0 0.0 0.0
+<EndHMM>
+EOF
+
+
+##echo "Please create \`phone_list' and \`phone_substitutions' in $root before continuing."
